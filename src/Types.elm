@@ -4,8 +4,10 @@ import Dict exposing (Dict)
 
 
 type Msg
-    = TileClick ( Int, Int )
-    | CheckWinCondition ( Int, Int )
+    = TileClick Coords
+    | CheckWinCondition Coords
+    | PushHistory Coords
+    | UndoHistory
 
 
 type Mark
@@ -25,7 +27,12 @@ type alias Model =
     , marks : Marks
     , currentPlayer : Player
     , hasWon : Maybe Player
+    , history : List Coords
     }
+
+
+type alias Coords =
+    ( Int, Int )
 
 
 type alias Marks =

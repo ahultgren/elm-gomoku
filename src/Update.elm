@@ -7,27 +7,29 @@ import Types
         ( Model
         , Marks
         , Row
-        , Msg(TileClick, CheckWinCondition)
+        , Msg(TileClick, CheckWinCondition, PushHistory, UndoHistory)
         , Mark(EmptyTile, TakenTile)
         , Player(PlayerOne, PlayerTwo)
+        , Coords
         )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        TileClick ( x, y ) ->
+        TileClick (( x, y ) as coords) ->
             if x < 0 || y < 0 || x > model.gridSize || y > model.gridSize then
                 ( model, Cmd.none )
             else
                 let
                     newModel =
                         { model
-                            | marks = updateMarks ( x, y ) model.currentPlayer model.marks
-                            , currentPlayer = updatePlayer model.marks ( x, y ) model.currentPlayer
+                            | marks = updateMarks (addMark model.currentPlayer) model.marks coords
+                            , currentPlayer = updatePlayer model.marks coords model.currentPlayer
                         }
                 in
-                    update (CheckWinCondition ( x, y )) newModel
+                    update (CheckWinCondition coords) newModel
+                        |> (update (PushHistory coords) << fst)
 
         CheckWinCondition start ->
             ( { model
@@ -36,19 +38,38 @@ update msg model =
             , Cmd.none
             )
 
+        PushHistory coords ->
+            ( { model
+                | history = coords :: model.history
+              }
+            , Cmd.none
+            )
 
-updateMarks : ( Int, Int ) -> Player -> Marks -> Marks
-updateMarks ( x, y ) player marks =
-    Dict.update x (Maybe.map <| updateRow y player) marks
+        UndoHistory ->
+            ( { model
+                | history = List.drop 1 model.history
+                , marks =
+                    List.head model.history
+                        |> Maybe.map (updateMarks removeMark model.marks)
+                        |> Maybe.withDefault model.marks
+                , currentPlayer = undoPlayer model.currentPlayer
+              }
+            , Cmd.none
+            )
 
 
-updateRow : Int -> Player -> Row -> Row
-updateRow y player row =
-    Dict.update y (Maybe.map <| updateMark player) row
+updateMarks : (Mark -> Mark) -> Marks -> Coords -> Marks
+updateMarks updater marks ( x, y ) =
+    Dict.update x (Maybe.map <| updateRow updater y) marks
 
 
-updateMark : Player -> Mark -> Mark
-updateMark player mark =
+updateRow : (Mark -> Mark) -> Int -> Row -> Row
+updateRow updater y row =
+    Dict.update y (Maybe.map updater) row
+
+
+addMark : Player -> Mark -> Mark
+addMark player mark =
     case mark of
         EmptyTile ->
             TakenTile player
@@ -57,7 +78,17 @@ updateMark player mark =
             mark
 
 
-updatePlayer : Marks -> ( Int, Int ) -> Player -> Player
+removeMark : Mark -> Mark
+removeMark mark =
+    case mark of
+        EmptyTile ->
+            mark
+
+        TakenTile _ ->
+            EmptyTile
+
+
+updatePlayer : Marks -> Coords -> Player -> Player
 updatePlayer marks coords player =
     case getMark coords marks of
         Nothing ->
@@ -75,7 +106,7 @@ updatePlayer marks coords player =
                     PlayerOne
 
 
-getMark : ( Int, Int ) -> Marks -> Maybe Mark
+getMark : Coords -> Marks -> Maybe Mark
 getMark ( x, y ) marks =
     Dict.get x marks
         |> Maybe.map (Dict.get y)
@@ -93,7 +124,7 @@ type Direction
     | UpLeft
 
 
-dirToCoords : ( Int, Int ) -> Direction -> ( Int, Int )
+dirToCoords : Coords -> Direction -> Coords
 dirToCoords ( x, y ) dir =
     case dir of
         Up ->
@@ -121,7 +152,7 @@ dirToCoords ( x, y ) dir =
             ( x - 1, y - 1 )
 
 
-findWinner : Model -> ( Int, Int ) -> Maybe Player
+findWinner : Model -> Coords -> Maybe Player
 findWinner { marks } coords =
     let
         dirs =
@@ -138,14 +169,14 @@ findWinner { marks } coords =
             Nothing
 
 
-sumDirs : ( Int, Int ) -> Marks -> ( Direction, Direction ) -> Int
+sumDirs : Coords -> Marks -> ( Direction, Direction ) -> Int
 sumDirs coords marks ( dir1, dir2 ) =
     1
         + (search 0 coords marks dir1)
         + (search 0 coords marks dir2)
 
 
-search : Int -> ( Int, Int ) -> Marks -> Direction -> Int
+search : Int -> Coords -> Marks -> Direction -> Int
 search score coords marks dir =
     let
         nextCoords =
@@ -171,3 +202,13 @@ markToPlayer mark =
 
         EmptyTile ->
             Nothing
+
+
+undoPlayer : Player -> Player
+undoPlayer player =
+    case player of
+        PlayerOne ->
+            PlayerTwo
+
+        PlayerTwo ->
+            PlayerOne

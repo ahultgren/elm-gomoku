@@ -2,9 +2,9 @@ module View exposing (..)
 
 import Dict
 import Json.Decode as Decode exposing (Decoder)
-import Html exposing (Html, text, div)
+import Html exposing (Html, text, div, button)
 import Html.Attributes exposing (class)
-import Html.Events exposing (on)
+import Html.Events exposing (on, onClick)
 import Collage exposing (Form, collage, move, filled, rect, oval, group)
 import Color exposing (rgb, rgba)
 import Element exposing (toHtml)
@@ -13,13 +13,14 @@ import Types
         ( Model
         , Marks
         , Row
-        , Msg(TileClick, CheckWinCondition)
+        , Msg(TileClick, CheckWinCondition, UndoHistory)
         , Mark(EmptyTile, TakenTile)
         , Player(PlayerOne, PlayerTwo)
+        , Coords
         )
 
 
-decodeClickLocation : Decoder ( Int, Int )
+decodeClickLocation : Decoder Coords
 decodeClickLocation =
     Decode.object2 (,)
         (Decode.object2 (-)
@@ -32,24 +33,27 @@ decodeClickLocation =
         )
 
 
-coordsToTile : Float -> Float -> Float -> ( Int, Int ) -> ( Int, Int )
+coordsToTile : Float -> Float -> Float -> Coords -> Coords
 coordsToTile width height count ( x, y ) =
     ( floor ((toFloat x) / width * count), floor ((toFloat y) / height * count) )
 
 
 view : Model -> Html Msg
 view model =
-    div [ on "click" (Decode.map (coordsToTile model.width model.height (toFloat model.gridSize) >> TileClick) decodeClickLocation) ]
-        [ toHtml <|
-            collage
-                (round model.width)
-                (round model.height)
-                [ group <|
-                    grid model.width model.height (toFloat model.gridSize)
-                , marksView model
-                ]
+    div []
+        [ div [ on "click" (Decode.map (coordsToTile model.width model.height (toFloat model.gridSize) >> TileClick) decodeClickLocation) ]
+            [ toHtml <|
+                collage
+                    (round model.width)
+                    (round model.height)
+                    [ group <|
+                        grid model.width model.height (toFloat model.gridSize)
+                    , marksView model
+                    ]
+            ]
         , playerView model
         , wonView model
+        , button [ onClick UndoHistory ] [ text "Undo" ]
         ]
 
 

@@ -53,6 +53,7 @@ init =
       , marks = generateEmptyBoard initGridSize
       , currentPlayer = PlayerOne
       , hasWon = Nothing
+      , history = []
       }
     , Cmd.none
     )
