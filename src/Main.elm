@@ -32,12 +32,12 @@ subscriptions x =
 
 generateEmptyBoard : Int -> Marks
 generateEmptyBoard count =
-    Dict.fromList <|
-        List.indexedMap (,) <|
-            List.repeat count <|
-                Dict.fromList <|
-                    List.indexedMap (,) <|
-                        List.repeat count EmptyTile
+    List.repeat count EmptyTile
+        |> List.indexedMap (,)
+        |> Dict.fromList
+        |> List.repeat count
+        |> List.indexedMap (,)
+        |> Dict.fromList
 
 
 initGridSize : Int
