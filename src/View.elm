@@ -5,7 +5,7 @@ import Json.Decode as Decode exposing (Decoder)
 import Html exposing (Html, text, div, button)
 import Html.Attributes exposing (class)
 import Html.Events exposing (on, onClick)
-import Collage exposing (Form, collage, move, filled, rect, oval, group)
+import Collage exposing (Form, collage, move, filled, outlined, rect, oval, group, polygon, defaultLine)
 import Color exposing (rgb, rgba)
 import Element exposing (toHtml)
 import Types
@@ -33,21 +33,21 @@ decodeClickLocation =
         )
 
 
-coordsToTile : Float -> Float -> Float -> Coords -> Coords
-coordsToTile width height count ( x, y ) =
-    ( floor ((toFloat x) / width * count), floor ((toFloat y) / height * count) )
+coordsToTile : Int -> Int -> Coords -> Coords
+coordsToTile boardSize count ( x, y ) =
+    ( count * x // boardSize, count * y // boardSize )
 
 
 view : Model -> Html Msg
 view model =
     div []
-        [ div [ on "click" (Decode.map (coordsToTile model.width model.height (toFloat model.gridSize) >> TileClick) decodeClickLocation) ]
+        [ div [ on "click" (Decode.map (coordsToTile model.boardSize model.gridSize >> TileClick) decodeClickLocation) ]
             [ toHtml <|
                 collage
-                    (round model.width)
-                    (round model.height)
+                    model.boardSize
+                    model.boardSize
                     [ group <|
-                        grid model.width model.height (toFloat model.gridSize)
+                        grid model.boardSize model.gridSize
                     , marksView model
                     ]
             ]
@@ -57,28 +57,33 @@ view model =
         ]
 
 
-grid : Float -> Float -> Float -> List Form
-grid width height count =
+grid : Int -> Int -> List Form
+grid boardSize count =
     let
         verticalLines =
-            List.repeat (round count + 1) ""
+            List.repeat (count + 1) ""
                 |> List.indexedMap
                     (\i _ ->
-                        move ( width / count * (toFloat i) - width / 2, 0 ) <|
-                            filled (rgb 0 0 0) <|
-                                rect 1 height
+                        moveInt ( i * boardSize // count - boardSize // 2, 0 ) <|
+                            filled (rgb 3 3 3) <|
+                                rect 1 (toFloat boardSize)
                     )
 
         horizontalLines =
-            List.repeat (round count + 1) ""
+            List.repeat (count + 1) ""
                 |> List.indexedMap
                     (\i _ ->
-                        move ( 0, height / count * (toFloat i) - height / 2 ) <|
-                            filled (rgb 0 0 0) <|
-                                rect width 1
+                        moveInt ( 0, i * boardSize // count - boardSize // 2 ) <|
+                            filled (rgb 1 1 1) <|
+                                rect (toFloat boardSize) 1
                     )
     in
         List.append verticalLines horizontalLines
+
+
+moveInt : ( Int, Int ) -> Form -> Form
+moveInt ( x, y ) =
+    move ( toFloat x, toFloat y )
 
 
 playerView : Model -> Html Msg
@@ -90,10 +95,10 @@ playerToString : Player -> String
 playerToString player =
     case player of
         PlayerOne ->
-            "Black"
+            "Crosses"
 
         PlayerTwo ->
-            "White"
+            "Noughts"
 
 
 marksView : Model -> Form
@@ -110,35 +115,45 @@ rowView model x row =
         |> group
 
 
-markView : Model -> Int -> Int -> Mark -> Form
-markView { width, height, gridSize } x y mark =
+nought : Int -> Form
+nought boardSize =
     let
-        cellWidth =
-            (width / (toFloat gridSize))
+        diameter =
+            toFloat <| boardSize // 50
+    in
+        outlined { defaultLine | color = (rgb 3 3 3), width = 2 } <| oval diameter diameter
 
-        cellHeight =
-            (height / (toFloat gridSize))
 
+cross : Int -> Form
+cross boardSize =
+    let
+        corner =
+            toFloat <| boardSize // 100
+    in
+        outlined { defaultLine | color = (rgb 3 3 3), width = 2 } <|
+            polygon [ ( 0, 0 ), ( -corner, -corner ), ( corner, corner ), ( 0, 0 ), ( corner, -corner ), ( -corner, corner ) ]
+
+
+markView : Model -> Int -> Int -> Mark -> Form
+markView { boardSize, gridSize } x y mark =
+    let
         pos =
-            move
-                ( cellWidth * (toFloat x) - width / 2 + cellWidth / 2
-                , cellHeight * (toFloat -y) + height / 2 - cellHeight / 2
+            moveInt
+                ( x * boardSize // gridSize + (-boardSize + boardSize // gridSize) // 2
+                , -y * boardSize // gridSize + (boardSize - boardSize // gridSize) // 2
                 )
-
-        shape =
-            oval 10 10
     in
         case mark of
             EmptyTile ->
-                pos <| filled (rgba 0 0 0 0) shape
+                pos <| group []
 
             TakenTile player ->
                 case player of
                     PlayerOne ->
-                        pos <| filled (rgb 0 0 0) shape
+                        pos <| cross boardSize
 
                     PlayerTwo ->
-                        pos <| filled (rgb 255 255 255) shape
+                        pos <| nought boardSize
 
 
 wonView : Model -> Html Msg

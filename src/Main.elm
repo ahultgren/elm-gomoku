@@ -1,7 +1,8 @@
 module Gomoku exposing (..)
 
 import Dict
-import Html.App exposing (program)
+import Html.App exposing (programWithFlags)
+import Window
 import Update exposing (update)
 import View exposing (view)
 import Types
@@ -9,15 +10,21 @@ import Types
         ( Model
         , Marks
         , Row
-        , Msg(TileClick, CheckWinCondition)
+        , Msg(TileClick, CheckWinCondition, Resize)
         , Mark(EmptyTile, TakenTile)
         , Player(PlayerOne, PlayerTwo)
         )
 
 
-main : Program Never
+type alias WindowSize =
+    { width : Int
+    , height : Int
+    }
+
+
+main : Program WindowSize
 main =
-    program
+    programWithFlags
         { init = init
         , update = update
         , view = view
@@ -26,8 +33,16 @@ main =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions x =
-    Sub.none
+subscriptions _ =
+    Window.resizes (Resize << getBoardSize)
+
+
+getBoardSize : WindowSize -> Int
+getBoardSize { height, width } =
+    if height < width then
+        height
+    else
+        width
 
 
 generateEmptyBoard : Int -> Marks
@@ -45,10 +60,9 @@ initGridSize =
     19
 
 
-init : ( Model, Cmd x )
-init =
-    ( { width = 500
-      , height = 500
+init : WindowSize -> ( Model, Cmd x )
+init windowSize =
+    ( { boardSize = getBoardSize windowSize
       , gridSize = initGridSize
       , marks = generateEmptyBoard initGridSize
       , currentPlayer = PlayerOne

@@ -7,7 +7,7 @@ import Types
         ( Model
         , Marks
         , Row
-        , Msg(TileClick, CheckWinCondition, PushHistory, UndoHistory)
+        , Msg(TileClick, CheckWinCondition, PushHistory, UndoHistory, Resize)
         , Mark(EmptyTile, TakenTile)
         , Player(PlayerOne, PlayerTwo)
         , Coords
@@ -53,6 +53,13 @@ update msg model =
                         |> Maybe.map (updateMarks removeMark model.marks)
                         |> Maybe.withDefault model.marks
                 , currentPlayer = undoPlayer model.currentPlayer
+              }
+            , Cmd.none
+            )
+
+        Resize width ->
+            ( { model
+                | boardSize = width
               }
             , Cmd.none
             )

@@ -13,7 +13,7 @@
     .game {
     }
     .game canvas {
-      background: #4a4;
+      background: #eee;
     }
     .winner {
       background: rgba(0,0,0,0.5);
@@ -32,7 +32,10 @@
   <div id="game" class="game"></div>
   <script src="/dist/elm.js"></script>
   <script>
-    Elm.Gomoku.embed(document.getElementById("game"));
+    Elm.Gomoku.embed(document.getElementById("game"), {
+      width: window.innerWidth,
+      height: window.innerHeight,
+    });
   </script>
 </body>
 </html>

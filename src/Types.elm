@@ -8,6 +8,7 @@ type Msg
     | CheckWinCondition Coords
     | PushHistory Coords
     | UndoHistory
+    | Resize Int
 
 
 type Mark
@@ -21,8 +22,7 @@ type Player
 
 
 type alias Model =
-    { width : Float
-    , height : Float
+    { boardSize : Int
     , gridSize : Int
     , marks : Marks
     , currentPlayer : Player
