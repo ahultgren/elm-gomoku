@@ -1,0 +1,41 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "Elm gomoku ws schema"
+  },
+  "basePath": "",
+  "schemes": [
+    "ws"
+  ],
+  "paths": {
+  },
+  "definitions": {
+    "Command": {
+      "type": "object",
+      "required": ["type", "coords"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["Move"]
+        },
+        "coords": {
+          "type": "object",
+          "$ref": "#/definitions/Move"
+        }
+      }
+    },
+    "Move": {
+      "type": "object",
+      "required": ["x", "y"],
+      "properties": {
+        "x": {
+          "type": "integer"
+        },
+        "y": {
+          "type": "integer"
+        }
+      }
+    }
+  }
+}

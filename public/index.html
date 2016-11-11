@@ -33,8 +33,11 @@
   <script src="/dist/elm.js"></script>
   <script>
     Elm.Gomoku.embed(document.getElementById("game"), {
-      width: window.innerWidth,
-      height: window.innerHeight,
+      size: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      },
+      wsAdress: "ws://" + document.location.hostname + ":5023"
     });
   </script>
 </body>

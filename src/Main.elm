@@ -3,6 +3,7 @@ module Gomoku exposing (..)
 import Dict
 import Html.App exposing (programWithFlags)
 import Window
+import WebSocket
 import Update exposing (update)
 import View exposing (view)
 import Types
@@ -10,10 +11,16 @@ import Types
         ( Model
         , Marks
         , Row
-        , Msg(TileClick, CheckWinCondition, Resize)
+        , Msg(TileClick, Resize, ServerMessage)
         , Mark(EmptyTile, TakenTile)
         , Player(PlayerOne, PlayerTwo)
         )
+
+
+type alias InitModel =
+    { size : WindowSize
+    , wsAdress : String
+    }
 
 
 type alias WindowSize =
@@ -22,7 +29,7 @@ type alias WindowSize =
     }
 
 
-main : Program WindowSize
+main : Program InitModel
 main =
     programWithFlags
         { init = init
@@ -33,8 +40,11 @@ main =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Window.resizes (Resize << getBoardSize)
+subscriptions model =
+    Sub.batch
+        [ Window.resizes (Resize << getBoardSize)
+        , WebSocket.listen model.wsAdress ServerMessage
+        ]
 
 
 getBoardSize : WindowSize -> Int
@@ -60,14 +70,15 @@ initGridSize =
     19
 
 
-init : WindowSize -> ( Model, Cmd x )
-init windowSize =
-    ( { boardSize = getBoardSize windowSize
+init : InitModel -> ( Model, Cmd x )
+init state =
+    ( { boardSize = getBoardSize state.size
       , gridSize = initGridSize
       , marks = generateEmptyBoard initGridSize
       , currentPlayer = PlayerOne
       , hasWon = Nothing
       , history = []
+      , wsAdress = state.wsAdress
       }
     , Cmd.none
     )

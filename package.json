@@ -1,10 +1,10 @@
 {
   "name": "elm-gomoku",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "main": "server/index.js",
   "scripts": {
     "start": "http-server -p 3023",
+    "ws": "node .",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "elm-make --warn src/Main.elm --output public/dist/elm.js",
     "dev-build": "npm run build -s",
@@ -16,5 +16,9 @@
   "devDependencies": {
     "http-server": "^0.9.0",
     "nodemon": "^1.11.0"
-  }
+  },
+  "dependencies": {
+    "ws": "^1.1.1"
+  },
+  "description": ""
 }

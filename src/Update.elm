@@ -2,12 +2,16 @@ module Update exposing (..)
 
 import Maybe.Extra exposing (join)
 import Dict
+import Json.Decode as Decode exposing (decodeString)
+import Json.Encode as Encode
+import WebSocket
+import Decoder exposing (decodeCommand, Command, EnumType(EnumTypeMove))
 import Types
     exposing
         ( Model
         , Marks
         , Row
-        , Msg(TileClick, CheckWinCondition, PushHistory, UndoHistory, Resize)
+        , Msg(TileClick, UndoHistory, Resize, ServerMessage, Move)
         , Mark(EmptyTile, TakenTile)
         , Player(PlayerOne, PlayerTwo)
         , Coords
@@ -21,27 +25,18 @@ update msg model =
             if x < 0 || y < 0 || x > model.gridSize || y > model.gridSize then
                 ( model, Cmd.none )
             else
-                let
-                    newModel =
-                        { model
-                            | marks = updateMarks (addMark model.currentPlayer) model.marks coords
-                            , currentPlayer = updatePlayer model.marks coords model.currentPlayer
-                        }
-                in
-                    update (CheckWinCondition coords) newModel
-                        |> (update (PushHistory coords) << fst)
+                ( model
+                    |> move coords
+                    |> checkWinCondition coords
+                    |> updateHistory coords
+                , sendMove coords model
+                )
 
-        CheckWinCondition start ->
-            ( { model
-                | hasWon = findWinner model start
-              }
-            , Cmd.none
-            )
-
-        PushHistory coords ->
-            ( { model
-                | history = coords :: model.history
-              }
+        Move coords ->
+            ( model
+                |> move coords
+                |> checkWinCondition coords
+                |> updateHistory coords
             , Cmd.none
             )
 
@@ -63,6 +58,69 @@ update msg model =
               }
             , Cmd.none
             )
+
+        ServerMessage str ->
+            decodeString decodeCommand (Debug.log "received" str)
+                |> Result.map (handleServerCommand model)
+                |> Result.withDefault ( model, Cmd.none )
+
+
+move : Coords -> Model -> Model
+move coords model =
+    { model
+        | marks = updateMarks (addMark model.currentPlayer) model.marks coords
+        , currentPlayer = updatePlayer model.marks coords model.currentPlayer
+    }
+
+
+checkWinCondition : Coords -> Model -> Model
+checkWinCondition start model =
+    { model
+        | hasWon = findWinner model start
+    }
+
+
+updateHistory : Coords -> Model -> Model
+updateHistory coords model =
+    { model
+        | history = coords :: model.history
+    }
+
+
+sendMove : Coords -> Model -> Cmd Msg
+sendMove coords model =
+    WebSocket.send model.wsAdress
+        (encodeCommand <|
+            Command (Decoder.Move (fst coords) (snd coords)) EnumTypeMove
+        )
+
+
+handleServerCommand : Model -> Command -> ( Model, Cmd Msg )
+handleServerCommand model { type_, coords } =
+    -- check that it's the oppponent's turn
+    update (Move ( coords.x, coords.y )) model
+
+
+encodeCommand : Command -> String
+encodeCommand command =
+    Encode.encode 0
+        (Encode.object
+            [ ( "type", (encodeEnumType command.type_) )
+            , ( "coords"
+              , Encode.object
+                    [ ( "x", Encode.int command.coords.x )
+                    , ( "y", Encode.int command.coords.y )
+                    ]
+              )
+            ]
+        )
+
+
+encodeEnumType : EnumType -> Encode.Value
+encodeEnumType type_ =
+    case type_ of
+        EnumTypeMove ->
+            Encode.string "Move"
 
 
 updateMarks : (Mark -> Mark) -> Marks -> Coords -> Marks

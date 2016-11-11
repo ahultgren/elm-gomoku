@@ -13,7 +13,7 @@ import Types
         ( Model
         , Marks
         , Row
-        , Msg(TileClick, CheckWinCondition, UndoHistory)
+        , Msg(TileClick, UndoHistory)
         , Mark(EmptyTile, TakenTile)
         , Player(PlayerOne, PlayerTwo)
         , Coords

@@ -5,10 +5,10 @@ import Dict exposing (Dict)
 
 type Msg
     = TileClick Coords
-    | CheckWinCondition Coords
-    | PushHistory Coords
     | UndoHistory
     | Resize Int
+    | ServerMessage String
+    | Move Coords
 
 
 type Mark
@@ -28,6 +28,7 @@ type alias Model =
     , currentPlayer : Player
     , hasWon : Maybe Player
     , history : List Coords
+    , wsAdress : String
     }
 
 
