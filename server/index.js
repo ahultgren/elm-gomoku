@@ -2,45 +2,28 @@
 
 const server = require("http").createServer();
 const WebSocketServer = require("ws").Server;
+const uuid = require("uuid");
+const rooms = require("./rooms");
 
 const wss = new WebSocketServer({
   server,
 });
 
-const game = {
-  playerOne: {},
-  playerTwo: {},
-};
-
 wss.on("connection", function connection(ws) {
-  console.log("Connection");
+  const id = uuid.v4();
 
-  let self;
-  let opponent;
-  if(!game.playerOne.ws) {
-    game.playerOne.ws = ws;
-    self = game.playerOne;
-    opponent = game.playerTwo;
-  } else {
-    game.playerTwo.ws = ws;
-    self = game.playerTwo;
-    opponent = game.playerOne;
-  }
+  console.log("Connect", id);
+  rooms.joinOrCreate(id, ws);
 
-  ws.on("message", function incoming(message) {
-    console.log("received: %s", message);
-    if(opponent.ws) {
-      console.log("Sending to opponent");
-      opponent.ws.send(message);
-    }
+  ws.on("message", function incoming(msg) {
+    console.log("Message: %s", msg);
+    rooms.send(id, msg);
   });
 
   ws.on("close", () => {
-    console.log("Disconnected");
-    self.ws = undefined;
+    console.log("Disconnect", id);
+    rooms.leave(id);
   });
-
-  ws.send("connected");
 });
 
 server.listen(process.env.PORT, () => {
