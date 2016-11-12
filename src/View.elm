@@ -6,7 +6,7 @@ import Html exposing (Html, text, div, button)
 import Html.Attributes exposing (class)
 import Html.Events exposing (on, onClick)
 import Collage exposing (Form, collage, move, filled, outlined, rect, oval, group, polygon, defaultLine)
-import Color exposing (rgb, rgba)
+import Color exposing (Color, rgb, rgba)
 import Element exposing (toHtml)
 import Types
     exposing
@@ -115,33 +115,49 @@ rowView model x row =
         |> group
 
 
-nought : Int -> Form
-nought boardSize =
+markColor : Color
+markColor =
+    rgb 48 48 48
+
+
+activeMarkColor : Color
+activeMarkColor =
+    rgb 144 48 48
+
+
+nought : Color -> Int -> Form
+nought color boardSize =
     let
         diameter =
             toFloat <| boardSize // 50
     in
-        outlined { defaultLine | color = (rgb 3 3 3), width = 2 } <| oval diameter diameter
+        outlined { defaultLine | color = color, width = 2 } <| oval diameter diameter
 
 
-cross : Int -> Form
-cross boardSize =
+cross : Color -> Int -> Form
+cross color boardSize =
     let
         corner =
             toFloat <| boardSize // 100
     in
-        outlined { defaultLine | color = (rgb 3 3 3), width = 2 } <|
+        outlined { defaultLine | color = color, width = 2 } <|
             polygon [ ( 0, 0 ), ( -corner, -corner ), ( corner, corner ), ( 0, 0 ), ( corner, -corner ), ( -corner, corner ) ]
 
 
 markView : Model -> Int -> Int -> Mark -> Form
-markView { boardSize, gridSize } x y mark =
+markView { boardSize, gridSize, history } x y mark =
     let
         pos =
             moveInt
                 ( x * boardSize // gridSize + (-boardSize + boardSize // gridSize) // 2
                 , -y * boardSize // gridSize + (boardSize - boardSize // gridSize) // 2
                 )
+
+        color =
+            if (List.head history) == Just ( x, y ) then
+                activeMarkColor
+            else
+                markColor
     in
         case mark of
             EmptyTile ->
@@ -150,10 +166,10 @@ markView { boardSize, gridSize } x y mark =
             TakenTile player ->
                 case player of
                     PlayerOne ->
-                        pos <| cross boardSize
+                        pos <| cross color boardSize
 
                     PlayerTwo ->
-                        pos <| nought boardSize
+                        pos <| nought color boardSize
 
 
 wonView : Model -> Html Msg
