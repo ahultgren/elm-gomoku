@@ -11,9 +11,10 @@ import Element exposing (toHtml)
 import Types
     exposing
         ( Model
+        , GameState(NotStarted, Started, Finished)
         , Marks
         , Row
-        , Msg(TileClick, UndoHistory)
+        , Msg(TileClick, UndoHistory, StartLocalGame, JoinOnlineGame)
         , Mark(EmptyTile, TakenTile)
         , Player(PlayerOne, PlayerTwo)
         , Coords
@@ -40,6 +41,36 @@ coordsToTile boardSize count ( x, y ) =
 
 view : Model -> Html Msg
 view model =
+    case model.state of
+        NotStarted ->
+            startScreen
+
+        _ ->
+            boardView model
+
+
+startScreen : Html Msg
+startScreen =
+    div
+        [ class "screen--start"
+        ]
+        [ button
+            [ class "local"
+            , onClick StartLocalGame
+            ]
+            [ text "Play local"
+            ]
+        , button
+            [ class "online"
+            , onClick JoinOnlineGame
+            ]
+            [ text "Play online"
+            ]
+        ]
+
+
+boardView : Model -> Html Msg
+boardView model =
     div []
         [ div [ on "click" (Decode.map (coordsToTile model.boardSize model.gridSize >> TileClick) decodeClickLocation) ]
             [ toHtml <|
@@ -53,7 +84,7 @@ view model =
             ]
         , playerView model
         , wonView model
-        , button [ onClick UndoHistory ] [ text "Undo" ]
+        , undoView model
         ]
 
 
@@ -173,10 +204,20 @@ markView { boardSize, gridSize, history } x y mark =
 
 
 wonView : Model -> Html Msg
-wonView { hasWon } =
-    case hasWon of
-        Nothing ->
+wonView { state } =
+    case state of
+        Finished player ->
+            div [ class "winner" ] [ text <| (playerToString player) ++ " won!" ]
+
+        _ ->
             div [] []
 
-        Just player ->
-            div [ class "winner" ] [ text <| (playerToString player) ++ " won!" ]
+
+undoView : Model -> Html Msg
+undoView { state } =
+    case state of
+        Started _ False ->
+            button [ onClick UndoHistory ] [ text "Undo" ]
+
+        _ ->
+            text ""

@@ -5,13 +5,14 @@ import Dict
 import Json.Decode as Decode exposing (decodeString)
 import Json.Encode as Encode
 import WebSocket
-import Decoder exposing (decodeCommand, Command, EnumType(EnumTypeMove))
+import Decoder exposing (decodeCommand, decodeMove, decodeStart, Command, EnumType(EnumTypeMove, EnumTypeStart))
 import Types
     exposing
         ( Model
+        , GameState(NotStarted, Pending, Started, Finished)
         , Marks
         , Row
-        , Msg(TileClick, UndoHistory, Resize, ServerMessage, Move)
+        , Msg(TileClick, UndoHistory, Resize, ServerMessage, Move, StartLocalGame, StartOnlineGame, JoinOnlineGame)
         , Mark(EmptyTile, TakenTile)
         , Player(PlayerOne, PlayerTwo)
         , Coords
@@ -21,16 +22,45 @@ import Types
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        StartLocalGame ->
+            ( { model
+                | state = Started [ PlayerOne, PlayerTwo ] False
+              }
+            , Cmd.none
+            )
+
+        JoinOnlineGame ->
+            ( { model
+                | state = Pending
+              }
+            , Cmd.none
+            )
+
+        StartOnlineGame player ->
+            ( { model
+                | state = Started [ player ] True
+              }
+            , Cmd.none
+            )
+
         TileClick (( x, y ) as coords) ->
-            if x < 0 || y < 0 || x > model.gridSize || y > model.gridSize then
-                ( model, Cmd.none )
-            else
-                ( model
-                    |> move coords
-                    |> checkWinCondition coords
-                    |> updateHistory coords
-                , sendMove coords model
-                )
+            case model.state of
+                Started allowedPlayers online ->
+                    if currentPlayerMayMove allowedPlayers model.currentPlayer then
+                        if x < 0 || y < 0 || x > model.gridSize || y > model.gridSize then
+                            ( model, Cmd.none )
+                        else
+                            ( model
+                                |> move coords
+                                |> checkWinCondition coords
+                                |> updateHistory coords
+                            , sendMove online coords model
+                            )
+                    else
+                        ( model, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
 
         Move coords ->
             ( model
@@ -61,8 +91,13 @@ update msg model =
 
         ServerMessage str ->
             decodeString decodeCommand (Debug.log "received" str)
-                |> Result.map (handleServerCommand model)
+                |> Result.map (handleServerCommand str model)
                 |> Result.withDefault ( model, Cmd.none )
+
+
+currentPlayerMayMove : List Player -> Player -> Bool
+currentPlayerMayMove allowedPlayers currentPlayer =
+    List.any ((==) currentPlayer) allowedPlayers
 
 
 move : Coords -> Model -> Model
@@ -75,9 +110,14 @@ move coords model =
 
 checkWinCondition : Coords -> Model -> Model
 checkWinCondition start model =
-    { model
-        | hasWon = findWinner model start
-    }
+    case findWinner model start of
+        Nothing ->
+            model
+
+        Just player ->
+            { model
+                | state = Finished player
+            }
 
 
 updateHistory : Coords -> Model -> Model
@@ -87,29 +127,57 @@ updateHistory coords model =
     }
 
 
-sendMove : Coords -> Model -> Cmd Msg
-sendMove coords model =
-    WebSocket.send model.wsAdress
-        (encodeCommand <|
-            Command (Decoder.Move (fst coords) (snd coords)) EnumTypeMove
-        )
+sendMove : Bool -> Coords -> Model -> Cmd Msg
+sendMove online coords model =
+    if online then
+        WebSocket.send model.wsAddress
+            (encodeMove <|
+                Decoder.Coords (fst coords) (snd coords)
+            )
+    else
+        Cmd.none
 
 
-handleServerCommand : Model -> Command -> ( Model, Cmd Msg )
-handleServerCommand model { type_, coords } =
-    -- check that it's the oppponent's turn
-    update (Move ( coords.x, coords.y )) model
+handleServerCommand : String -> Model -> Command -> ( Model, Cmd Msg )
+handleServerCommand json model { type_ } =
+    case type_ of
+        Decoder.EnumTypeStart ->
+            decodeString decodeStart json
+                |> Result.map
+                    (\{ player } ->
+                        update
+                            (StartOnlineGame
+                                (case player of
+                                    Decoder.EnumPlayerPlayerOne ->
+                                        PlayerOne
+
+                                    Decoder.EnumPlayerPlayerTwo ->
+                                        PlayerTwo
+                                )
+                            )
+                            model
+                    )
+                |> Result.withDefault ( model, Cmd.none )
+
+        Decoder.EnumTypeMove ->
+            -- check that it's the oppponent's turn
+            decodeString decodeMove json
+                |> Result.map
+                    (\{ coords } ->
+                        update (Move ( coords.x, coords.y )) model
+                    )
+                |> Result.withDefault ( model, Cmd.none )
 
 
-encodeCommand : Command -> String
-encodeCommand command =
+encodeMove : Decoder.Coords -> String
+encodeMove coords =
     Encode.encode 0
         (Encode.object
-            [ ( "type", (encodeEnumType command.type_) )
+            [ ( "type", (encodeEnumType EnumTypeMove) )
             , ( "coords"
               , Encode.object
-                    [ ( "x", Encode.int command.coords.x )
-                    , ( "y", Encode.int command.coords.y )
+                    [ ( "x", Encode.int coords.x )
+                    , ( "y", Encode.int coords.y )
                     ]
               )
             ]
@@ -121,6 +189,9 @@ encodeEnumType type_ =
     case type_ of
         EnumTypeMove ->
             Encode.string "Move"
+
+        EnumTypeStart ->
+            Encode.string "Start"
 
 
 updateMarks : (Mark -> Mark) -> Marks -> Coords -> Marks

@@ -19,18 +19,21 @@ const createRoom = (id, ws) => {
 
 const joinLastRoom = (id, ws) => {
   lastRoom.players[id] = ws;
-  rooms[lastRoom.id] = lastRoom;
   players[id] = lastRoom;
-  lastRoom = null;
+
+  if(Object.keys(lastRoom.players).length > 0) {
+    rooms[lastRoom.id] = lastRoom;
+    lastRoom = null;
+  }
 };
 
 exports.joinOrCreate = (id, ws) => {
   if(lastRoom) {
     joinLastRoom(id, ws);
-    return "PlayerTwo";
+    return !lastRoom;
   } else {
     createRoom(id, ws);
-    return "PlayerOne";
+    return false;
   }
 };
 
@@ -44,6 +47,7 @@ exports.send = (id, msg) => {
 };
 
 exports.leave = (id) => {
+  delete players[id].players[id];
   delete rooms[players[id].id];
   delete players[id];
 };

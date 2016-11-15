@@ -13,19 +13,38 @@
   "definitions": {
     "Command": {
       "type": "object",
-      "required": ["type", "coords"],
+      "required": ["type"],
+      "discrimiantor": "type",
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["Move"]
-        },
-        "coords": {
-          "type": "object",
-          "$ref": "#/definitions/Move"
+          "enum": ["Move", "Start"]
         }
       }
     },
+
     "Move": {
+      "type": "object",
+      "required": ["coords"],
+      "properties": {
+        "coords": {
+          "type": "object",
+          "$ref": "#/definitions/Coords"
+        }
+      }
+    },
+    "Start": {
+      "type": "object",
+      "required": ["player"],
+      "properties": {
+        "player": {
+          "type": "string",
+          "enum": ["PlayerOne", "PlayerTwo"]
+        }
+      }
+    },
+
+    "Coords": {
       "type": "object",
       "required": ["x", "y"],
       "properties": {

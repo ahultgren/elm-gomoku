@@ -9,6 +9,7 @@ import View exposing (view)
 import Types
     exposing
         ( Model
+        , GameState(NotStarted, Pending, Started)
         , Marks
         , Row
         , Msg(TileClick, Resize, ServerMessage)
@@ -19,7 +20,7 @@ import Types
 
 type alias InitModel =
     { size : WindowSize
-    , wsAdress : String
+    , wsAddress : String
     }
 
 
@@ -43,8 +44,21 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ Window.resizes (Resize << getBoardSize)
-        , WebSocket.listen model.wsAdress ServerMessage
+        , wsSubscriptions model
         ]
+
+
+wsSubscriptions : Model -> Sub Msg
+wsSubscriptions model =
+    case model.state of
+        Pending ->
+            WebSocket.listen model.wsAddress ServerMessage
+
+        Started _ True ->
+            WebSocket.listen model.wsAddress ServerMessage
+
+        _ ->
+            Sub.none
 
 
 getBoardSize : WindowSize -> Int
@@ -72,13 +86,13 @@ initGridSize =
 
 init : InitModel -> ( Model, Cmd x )
 init state =
-    ( { boardSize = getBoardSize state.size
+    ( { state = NotStarted
+      , boardSize = getBoardSize state.size
       , gridSize = initGridSize
       , marks = generateEmptyBoard initGridSize
       , currentPlayer = PlayerOne
-      , hasWon = Nothing
       , history = []
-      , wsAdress = state.wsAdress
+      , wsAddress = state.wsAddress
       }
     , Cmd.none
     )

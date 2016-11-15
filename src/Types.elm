@@ -9,6 +9,9 @@ type Msg
     | Resize Int
     | ServerMessage String
     | Move Coords
+    | StartLocalGame
+    | StartOnlineGame Player
+    | JoinOnlineGame
 
 
 type Mark
@@ -21,14 +24,22 @@ type Player
     | PlayerTwo
 
 
+type GameState
+    = NotStarted
+    | Pending
+    | Started (List Player) Bool
+    | Finished Player
+    | Disconnected
+
+
 type alias Model =
-    { boardSize : Int
+    { state : GameState
+    , boardSize : Int
     , gridSize : Int
     , marks : Marks
     , currentPlayer : Player
-    , hasWon : Maybe Player
     , history : List Coords
-    , wsAdress : String
+    , wsAddress : String
     }
 
 
