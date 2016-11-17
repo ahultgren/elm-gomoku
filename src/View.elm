@@ -23,12 +23,12 @@ import Types
 
 decodeClickLocation : Decoder Coords
 decodeClickLocation =
-    Decode.object2 (,)
-        (Decode.object2 (-)
+    Decode.map2 (,)
+        (Decode.map2 (-)
             (Decode.at [ "pageX" ] Decode.int)
             (Decode.at [ "target", "offsetLeft" ] Decode.int)
         )
-        (Decode.object2 (-)
+        (Decode.map2 (-)
             (Decode.at [ "pageY" ] Decode.int)
             (Decode.at [ "target", "offsetTop" ] Decode.int)
         )

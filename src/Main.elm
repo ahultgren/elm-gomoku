@@ -1,7 +1,7 @@
 module Gomoku exposing (..)
 
 import Dict
-import Html.App exposing (programWithFlags)
+import Html exposing (programWithFlags)
 import Window
 import WebSocket
 import Update exposing (update)
@@ -30,7 +30,7 @@ type alias WindowSize =
     }
 
 
-main : Program InitModel
+main : Program InitModel Model Msg
 main =
     programWithFlags
         { init = init

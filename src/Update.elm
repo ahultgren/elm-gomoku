@@ -132,7 +132,7 @@ sendMove online coords model =
     if online then
         WebSocket.send model.wsAddress
             (encodeMove <|
-                Decoder.Coords (fst coords) (snd coords)
+                Decoder.Coords (Tuple.first coords) (Tuple.second coords)
             )
     else
         Cmd.none
