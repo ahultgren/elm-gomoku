@@ -2,4 +2,3 @@ node_modules
 elm-stuff
 public/dist
 .env
-src/Decoder.elm
