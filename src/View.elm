@@ -2,7 +2,7 @@ module View exposing (..)
 
 import Dict
 import Json.Decode as Decode exposing (Decoder)
-import Html exposing (Html, text, div, button)
+import Html exposing (Html, node, h1, text, div, button)
 import Html.Attributes exposing (class)
 import Html.Events exposing (on, onClick)
 import Collage exposing (Form, collage, move, filled, outlined, rect, oval, group, polygon, defaultLine)
@@ -11,7 +11,7 @@ import Element exposing (toHtml)
 import Types
     exposing
         ( Model
-        , GameState(NotStarted, Started, Finished)
+        , GameState(NotStarted, Pending, Started, Finished)
         , Marks
         , Row
         , Msg(TileClick, UndoHistory, StartLocalGame, JoinOnlineGame)
@@ -41,37 +41,65 @@ coordsToTile boardSize count ( x, y ) =
 
 view : Model -> Html Msg
 view model =
-    case model.state of
-        NotStarted ->
-            startScreen
+    let
+        content =
+            case model.state of
+                NotStarted ->
+                    startScreen
 
-        _ ->
-            boardView model
+                Pending ->
+                    pendingView model
+
+                _ ->
+                    boardView model
+    in
+        div [] [ (stylesView model), content ]
 
 
 startScreen : Html Msg
 startScreen =
     div
-        [ class "screen--start"
+        [ class "screen screen--start"
         ]
-        [ button
-            [ class "local"
-            , onClick StartLocalGame
+        [ div [ class "start" ]
+            [ h1 [ class "start-title" ] [ text "Gomoku" ]
+            , button
+                [ class "btn"
+                , onClick StartLocalGame
+                ]
+                [ text "Play local"
+                ]
+            , button
+                [ class "btn"
+                , onClick JoinOnlineGame
+                ]
+                [ text "Play online"
+                ]
+            , div
+                [ class "start-rules"
+                ]
+                [ text "You win if you get five in a row"
+                ]
             ]
-            [ text "Play local"
+        ]
+
+
+pendingView : Model -> Html Msg
+pendingView model =
+    div
+        [ class "screen screen--pending"
+        ]
+        [ div
+            [ class "pending"
             ]
-        , button
-            [ class "online"
-            , onClick JoinOnlineGame
-            ]
-            [ text "Play online"
+            [ text "Waiting for opponent..."
             ]
         ]
 
 
 boardView : Model -> Html Msg
 boardView model =
-    div []
+    div [ class "screen screen--started" ]
         [ div [ on "click" (Decode.map (coordsToTile model.boardSize model.gridSize >> TileClick) decodeClickLocation) ]
             [ toHtml <|
                 collage
@@ -118,7 +146,7 @@ moveInt ( x, y ) =
 
 
 playerView : Model -> Html Msg
-playerView { currentPlayer } =
+playerView { currentPlayer, boardSize } =
     text ("Turn: " ++ playerToString currentPlayer)
 
 
@@ -217,7 +245,12 @@ undoView : Model -> Html Msg
 undoView { state } =
     case state of
         Started _ False ->
-            button [ onClick UndoHistory ] [ text "Undo" ]
+            button [ class "btn", onClick UndoHistory ] [ text "Undo" ]
 
         _ ->
             text ""
+
+
+stylesView : Model -> Html Msg
+stylesView { boardSize } =
+    node "style" [] [ text (".screen { width: " ++ (toString boardSize) ++ "px; height: " ++ (toString boardSize) ++ "px;}") ]

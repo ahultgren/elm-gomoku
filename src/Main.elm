@@ -1,8 +1,7 @@
-module Gomoku exposing (..)
+port module Gomoku exposing (..)
 
 import Dict
 import Html exposing (programWithFlags)
-import Window
 import WebSocket
 import Update exposing (update)
 import View exposing (view)
@@ -30,6 +29,9 @@ type alias WindowSize =
     }
 
 
+port resizes : (WindowSize -> msg) -> Sub msg
+
+
 main : Program InitModel Model Msg
 main =
     programWithFlags
@@ -43,7 +45,7 @@ main =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Window.resizes (Resize << getBoardSize)
+        [ resizes (Resize << getBoardSize)
         , wsSubscriptions model
         ]
 
@@ -63,8 +65,8 @@ wsSubscriptions model =
 
 getBoardSize : WindowSize -> Int
 getBoardSize { height, width } =
-    if height < width then
-        height
+    if height - 100 < width then
+        height - 100
     else
         width
 
