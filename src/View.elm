@@ -2,7 +2,7 @@ module View exposing (..)
 
 import Dict
 import Json.Decode as Decode exposing (Decoder)
-import Html exposing (Html, node, h1, text, div, button)
+import Html exposing (Html, node, h1, text, div, button, br)
 import Html.Attributes exposing (class)
 import Html.Events exposing (on, onClick)
 import Collage exposing (Form, collage, move, filled, outlined, rect, oval, group, polygon, defaultLine)
@@ -11,10 +11,10 @@ import Element exposing (toHtml)
 import Types
     exposing
         ( Model
-        , GameState(NotStarted, Pending, Started, Finished)
+        , GameState(NotStarted, Pending, Started, Finished, OpponentLeft)
         , Marks
         , Row
-        , Msg(TileClick, UndoHistory, StartLocalGame, JoinOnlineGame)
+        , Msg(TileClick, UndoHistory, StartLocalGame, JoinOnlineGame, Reset)
         , Mark(EmptyTile, TakenTile)
         , Player(PlayerOne, PlayerTwo)
         , Coords
@@ -45,15 +45,21 @@ view model =
         content =
             case model.state of
                 NotStarted ->
-                    startScreen
+                    [ startScreen ]
 
                 Pending ->
-                    pendingView model
+                    [ pendingView model ]
+
+                Finished player ->
+                    [ wonView player, boardView model ]
+
+                OpponentLeft ->
+                    [ leftView model, boardView model ]
 
                 _ ->
-                    boardView model
+                    [ boardView model ]
     in
-        div [] [ (stylesView model), content ]
+        div [] ((stylesView model) :: content)
 
 
 startScreen : Html Msg
@@ -61,8 +67,8 @@ startScreen =
     div
         [ class "screen screen--start"
         ]
-        [ div [ class "start" ]
-            [ h1 [ class "start-title" ] [ text "Gomoku" ]
+        [ div [ class "start abs-cent" ]
+            [ h1 [ class "title" ] [ text "Gomoku" ]
             , button
                 [ class "btn"
                 , onClick StartLocalGame
@@ -90,9 +96,35 @@ pendingView model =
         [ class "screen screen--pending"
         ]
         [ div
-            [ class "pending"
+            [ class "pending abs-cent"
             ]
-            [ text "Waiting for opponent..."
+            [ h1 [ class "title" ] [ text "Waiting for opponent..." ]
+            ]
+        ]
+
+
+wonView : Player -> Html Msg
+wonView player =
+    div [ class "screen screen--finished overlay" ]
+        [ div [ class "abs-cent" ]
+            [ h1 [ class "title" ]
+                [ text <| (playerToString player) ++ " won!"
+                ]
+            , button [ class "btn", onClick Reset ] [ text "New game" ]
+            ]
+        ]
+
+
+leftView : Model -> Html Msg
+leftView model =
+    div [ class "screen screen--left overlay" ]
+        [ div [ class "left abs-cent" ]
+            [ h1 [ class "title" ]
+                [ text "Your opponent"
+                , br [] []
+                , text "disconnected :("
+                ]
+            , button [ class "btn", onClick Reset ] [ text "New game" ]
             ]
         ]
 
@@ -111,7 +143,6 @@ boardView model =
                     ]
             ]
         , playerView model
-        , wonView model
         , undoView model
         ]
 
@@ -229,16 +260,6 @@ markView { boardSize, gridSize, history } x y mark =
 
                     PlayerTwo ->
                         pos <| nought color boardSize
-
-
-wonView : Model -> Html Msg
-wonView { state } =
-    case state of
-        Finished player ->
-            div [ class "winner" ] [ text <| (playerToString player) ++ " won!" ]
-
-        _ ->
-            div [] []
 
 
 undoView : Model -> Html Msg

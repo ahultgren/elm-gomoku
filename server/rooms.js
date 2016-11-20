@@ -21,7 +21,7 @@ const joinLastRoom = (id, ws) => {
   lastRoom.players[id] = ws;
   players[id] = lastRoom;
 
-  if(Object.keys(lastRoom.players).length > 0) {
+  if(Object.keys(lastRoom.players).length > 1) {
     rooms[lastRoom.id] = lastRoom;
     lastRoom = null;
   }

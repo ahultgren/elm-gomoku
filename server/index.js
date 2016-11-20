@@ -33,6 +33,9 @@ wss.on("connection", function connection(ws) {
 
   ws.on("close", () => {
     console.log("Disconnect", id);
+    rooms.send(id, JSON.stringify({
+      type: "Disconnected",
+    }));
     rooms.leave(id);
   });
 

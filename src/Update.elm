@@ -5,14 +5,15 @@ import Dict
 import Json.Decode as Decode exposing (decodeString)
 import Json.Encode as Encode
 import WebSocket
-import Decoder exposing (decodeCommand, decodeMove, decodeStart, Command, EnumType(EnumTypeMove, EnumTypeStart))
+import Init exposing (initFromModel)
+import Decoder exposing (decodeCommand, decodeMove, decodeStart, Command, EnumType(EnumTypeMove, EnumTypeStart, EnumTypeDisconnected))
 import Types
     exposing
         ( Model
-        , GameState(NotStarted, Pending, Started, Finished)
+        , GameState(NotStarted, Pending, Started, Finished, OpponentLeft)
         , Marks
         , Row
-        , Msg(TileClick, UndoHistory, Resize, ServerMessage, Move, StartLocalGame, StartOnlineGame, JoinOnlineGame)
+        , Msg(TileClick, UndoHistory, Resize, ServerMessage, Move, StartLocalGame, StartOnlineGame, JoinOnlineGame, Reset)
         , Mark(EmptyTile, TakenTile)
         , Player(PlayerOne, PlayerTwo)
         , Coords
@@ -94,6 +95,9 @@ update msg model =
                 |> Result.map (handleServerCommand str model)
                 |> Result.withDefault ( model, Cmd.none )
 
+        Reset ->
+            initFromModel model
+
 
 currentPlayerMayMove : List Player -> Player -> Bool
 currentPlayerMayMove allowedPlayers currentPlayer =
@@ -168,6 +172,13 @@ handleServerCommand json model { type_ } =
                     )
                 |> Result.withDefault ( model, Cmd.none )
 
+        Decoder.EnumTypeDisconnected ->
+            ( { model
+                | state = OpponentLeft
+              }
+            , Cmd.none
+            )
+
 
 encodeMove : Decoder.Coords -> String
 encodeMove coords =
@@ -192,6 +203,9 @@ encodeEnumType type_ =
 
         EnumTypeStart ->
             Encode.string "Start"
+
+        EnumTypeDisconnected ->
+            Encode.string "Disconnected"
 
 
 updateMarks : (Mark -> Mark) -> Marks -> Coords -> Marks

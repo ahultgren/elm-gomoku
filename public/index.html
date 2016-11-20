@@ -28,6 +28,20 @@
       color: #fff;
       border-color: #fff;
     }
+    .title {
+      margin-top: 0;
+      font-size: 3em;
+      font-weight: normal;
+    }
+    .abs-cent {
+      margin: auto;
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      transform: translateY(-50%);
+      text-align: center;
+    }
 
     .game {
     }
@@ -40,45 +54,19 @@
       position: relative;
     }
     .start {
-      margin: auto;
-      position: absolute;
-      top: 50%;
-      left: 0;
-      right: 0;
-      transform: translateY(-50%);
-      text-align: center;
-    }
-    .start-title {
-      margin-top: 0;
-      font-size: 3em;
-      font-weight: normal;
     }
     .start-rules {
       margin-top: 3em;
     }
 
-    .pending {
-      font-size: 2em;
-      text-align: center;
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      margin: auto;
-      height: 2em;
-      line-height: 1;
-    }
-    .winner {
+    .overlay {
       background: rgba(0,0,0,0.5);
       position: absolute;
       top: 0;
       left: 0;
-      width: 500px;
-      height: 500px;
-      font-size: 80px;
-      text-align: center;
-      line-height: 440px;
+      right: 0;
+      bottom: 0;
+      z-index: 100;
     }
   </style>
 </head>

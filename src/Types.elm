@@ -12,6 +12,16 @@ type Msg
     | StartLocalGame
     | StartOnlineGame Player
     | JoinOnlineGame
+    | Reset
+
+
+type GameState
+    = NotStarted
+    | Pending
+    | Started (List Player) Bool
+    | Finished Player
+    | OpponentLeft
+    | Disconnected
 
 
 type Mark
@@ -22,14 +32,6 @@ type Mark
 type Player
     = PlayerOne
     | PlayerTwo
-
-
-type GameState
-    = NotStarted
-    | Pending
-    | Started (List Player) Bool
-    | Finished Player
-    | Disconnected
 
 
 type alias Model =

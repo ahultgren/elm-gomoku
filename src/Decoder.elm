@@ -32,6 +32,7 @@ lazy thunk =
 type EnumType
     = EnumTypeMove
     | EnumTypeStart
+    | EnumTypeDisconnected
 
 
 type EnumPlayer
@@ -70,6 +71,9 @@ decodeEnumType =
 
                 "Start" ->
                     Result.Ok EnumTypeStart
+
+                "Disconnected" ->
+                    Result.Ok EnumTypeDisconnected
 
                 _ ->
                     Result.Err ("Invalid value for EnumType. Value: " ++ string)
