@@ -3,11 +3,21 @@
 const server = require("http").createServer();
 const WebSocketServer = require("ws").Server;
 const uuid = require("uuid");
+const express = require("express");
+const config = require("../config");
 const rooms = require("./rooms");
+const mainView = require("./main-view");
 
+const port = config.get("PORT");
+const app = express();
 const wss = new WebSocketServer({
   server,
 });
+
+app.get("/", (req, res, next) => {
+  res.send(mainView());
+});
+app.use(express.static("public"));
 
 wss.on("connection", function connection(ws) {
   const id = uuid.v4();
@@ -48,6 +58,7 @@ wss.on("error", (e) => {
   console.log("wss error", e);
 });
 
-server.listen(process.env.PORT, () => {
-  console.log("Listening on port", process.env.PORT);
+server.on("request", app);
+server.listen(port, () => {
+  console.log("Listening on port", port);
 });
