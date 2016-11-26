@@ -42,6 +42,7 @@ type alias Model =
     , currentPlayer : Player
     , history : List Coords
     , wsAddress : String
+    , gameCount : Int
     }
 
 

@@ -7,6 +7,7 @@ var app = Elm.Gomoku.embed(document.getElementById("game"), {
     height: height,
   },
   wsAddress: window.Config.wsAddress,
+  gameCount: window.Config.gameCount,
 });
 
 window.addEventListener("resize", function (e) {

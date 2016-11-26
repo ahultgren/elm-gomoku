@@ -1,6 +1,6 @@
 const config = require("../config");
 
-module.exports = () => {
+module.exports = (state) => {
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -16,6 +16,7 @@ module.exports = () => {
   <script>
     var Config = {
       wsAddress: "ws://${config.get("HOSTNAME")}",
+      gameCount: ${state.gameCount},
     };
   </script>
   <script src="/js/main.js"></script>

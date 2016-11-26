@@ -15,7 +15,9 @@ const wss = new WebSocketServer({
 });
 
 app.get("/", (req, res, next) => {
-  res.send(mainView());
+  res.send(mainView({
+    gameCount: rooms.getRoomCount(),
+  }));
 });
 app.use(express.static("public"));
 

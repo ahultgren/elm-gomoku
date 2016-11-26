@@ -51,3 +51,5 @@ exports.leave = (id) => {
   delete rooms[players[id].id];
   delete players[id];
 };
+
+exports.getRoomCount = () => Object.keys(rooms).length;

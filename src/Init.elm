@@ -16,6 +16,7 @@ import Types
 type alias InitModel =
     { size : WindowSize
     , wsAddress : String
+    , gameCount : Int
     }
 
 
@@ -39,6 +40,7 @@ init state =
       , currentPlayer = PlayerOne
       , history = []
       , wsAddress = state.wsAddress
+      , gameCount = state.gameCount
       }
     , Cmd.none
     )
@@ -52,6 +54,7 @@ initFromModel model =
             , height = model.boardSize + 100
             }
         , wsAddress = model.wsAddress
+        , gameCount = model.gameCount
         }
 
 
