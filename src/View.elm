@@ -178,8 +178,21 @@ moveInt ( x, y ) =
 
 
 playerView : Model -> Html Msg
-playerView { currentPlayer, boardSize } =
-    text ("Turn: " ++ playerToString currentPlayer)
+playerView { currentPlayer, boardSize, state } =
+    case state of
+        Started _ False ->
+            text ("Turn: " ++ playerToString currentPlayer)
+
+        Started localPlayers True ->
+            text
+                (if List.any ((==) currentPlayer) localPlayers then
+                    "Your turn (" ++ (playerToString currentPlayer) ++ ")"
+                 else
+                    "Opponent's turn (" ++ (playerToString currentPlayer) ++ ")"
+                )
+
+        _ ->
+            text ""
 
 
 playerToString : Player -> String
