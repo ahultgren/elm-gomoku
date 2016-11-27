@@ -99,7 +99,7 @@ pendingView model =
             [ class "pending abs-cent"
             ]
             [ h1 [ class "title" ] [ text "Waiting for opponent..." ]
-            , div [] [ text <| "Currently playing: ~" ++ (toString <| model.gameCount * 2) ]
+            , div [] [ text <| "Currently playing: " ++ (toString <| model.gameCount * 2) ]
             ]
         ]
 
