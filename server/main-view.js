@@ -12,7 +12,7 @@ module.exports = (state) => {
 </head>
 <body>
   <div id="game" class="game"></div>
-  <script src="/dist/elm.js"></script>
+  <script src="/dist/elm.min.js"></script>
   <script>
     var Config = {
       wsAddress: "ws://${config.get("HOSTNAME")}",

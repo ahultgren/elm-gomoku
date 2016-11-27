@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node .",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "elm-make --warn src/Main.elm --output public/dist/elm.js",
+    "build": "elm-make --warn src/Main.elm --output public/dist/elm.js && uglifyjs public/dist/elm.js > public/dist/elm.min.js",
     "dev-build": "npm run build -s",
     "dev": "nodemon -e 'elm' -x npm run dev-build -s",
     "dev-server": "nodemon -x nf run npm start",
@@ -21,6 +21,7 @@
   "dependencies": {
     "elm": "^0.18.0",
     "express": "^4.14.0",
+    "uglify-js": "^2.7.4",
     "uuid": "^2.0.3",
     "varium": "github:ahultgren/node-varium",
     "ws": "^1.1.1"
