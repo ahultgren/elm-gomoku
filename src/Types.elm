@@ -8,7 +8,6 @@ type Msg
     | UndoHistory
     | Resize Int
     | ServerMessage String
-    | Move Coords
     | StartLocalGame
     | StartOnlineGame Player
     | JoinOnlineGame

@@ -13,7 +13,7 @@ import Types
         , GameState(NotStarted, Pending, Started, Finished, OpponentLeft)
         , Marks
         , Row
-        , Msg(TileClick, UndoHistory, Resize, ServerMessage, Move, StartLocalGame, StartOnlineGame, JoinOnlineGame, Reset)
+        , Msg(TileClick, UndoHistory, Resize, ServerMessage, StartLocalGame, StartOnlineGame, JoinOnlineGame, Reset)
         , Mark(EmptyTile, TakenTile)
         , Player(PlayerOne, PlayerTwo)
         , Coords
@@ -24,84 +24,63 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         StartLocalGame ->
-            ( { model
-                | state = Started [ PlayerOne, PlayerTwo ] False
-              }
-            , Cmd.none
-            )
+            ( { model | state = Started [ PlayerOne, PlayerTwo ] False }, Cmd.none )
 
         JoinOnlineGame ->
-            ( { model
-                | state = Pending
-              }
-            , Cmd.none
-            )
+            ( { model | state = Pending }, Cmd.none )
 
         StartOnlineGame player ->
-            ( { model
-                | state = Started [ player ] True
-              }
-            , Cmd.none
-            )
+            ( { model | state = Started [ player ] True }, Cmd.none )
 
-        TileClick (( x, y ) as coords) ->
+        TileClick coords ->
             case model.state of
                 Started allowedPlayers online ->
-                    if currentPlayerMayMove allowedPlayers model.currentPlayer then
-                        if x < 0 || y < 0 || x > model.gridSize || y > model.gridSize then
-                            ( model, Cmd.none )
-                        else
-                            ( model
-                                |> move coords
-                                |> checkWinCondition coords
-                                |> updateHistory coords
-                            , sendMove online coords model
-                            )
-                    else
-                        ( model, Cmd.none )
+                    moveLocal coords allowedPlayers online model
 
                 _ ->
                     ( model, Cmd.none )
 
-        Move coords ->
-            ( model
-                |> move coords
-                |> checkWinCondition coords
-                |> updateHistory coords
-            , Cmd.none
-            )
-
         UndoHistory ->
-            ( { model
-                | history = List.drop 1 model.history
-                , marks =
-                    List.head model.history
-                        |> Maybe.map (updateMarks removeMark model.marks)
-                        |> Maybe.withDefault model.marks
-                , currentPlayer = undoPlayer model.currentPlayer
-              }
-            , Cmd.none
-            )
+            ( undo model, Cmd.none )
 
         Resize width ->
-            ( { model
-                | boardSize = width
-              }
-            , Cmd.none
-            )
+            ( { model | boardSize = width }, Cmd.none )
 
-        ServerMessage str ->
-            decodeString decodeCommand (Debug.log "received" str)
-                |> Result.map (handleServerCommand str model)
-                |> Result.withDefault ( model, Cmd.none )
+        ServerMessage json ->
+            handleServerMessage json model
 
         Reset ->
             initFromModel model
 
 
+undo : Model -> Model
+undo model =
+    { model
+        | history = List.drop 1 model.history
+        , marks =
+            List.head model.history
+                |> Maybe.map (updateMarks removeMark model.marks)
+                |> Maybe.withDefault model.marks
+        , currentPlayer = undoPlayer model.currentPlayer
+    }
+
+
 currentPlayerMayMove : List Player -> Player -> Bool
 currentPlayerMayMove allowedPlayers currentPlayer =
     List.any ((==) currentPlayer) allowedPlayers
+
+
+moveLocal : Coords -> List Player -> Bool -> Model -> ( Model, Cmd Msg )
+moveLocal (( x, y ) as coords) allowedPlayers online model =
+    if currentPlayerMayMove allowedPlayers model.currentPlayer then
+        if x < 0 || y < 0 || x > model.gridSize || y > model.gridSize then
+            ( model, Cmd.none )
+        else
+            ( move coords model
+            , sendMove online coords model
+            )
+    else
+        ( model, Cmd.none )
 
 
 move : Coords -> Model -> Model
@@ -110,6 +89,8 @@ move coords model =
         | marks = updateMarks (addMark model.currentPlayer) model.marks coords
         , currentPlayer = updatePlayer model.marks coords model.currentPlayer
     }
+        |> checkWinCondition coords
+        |> updateHistory coords
 
 
 checkWinCondition : Coords -> Model -> Model
@@ -142,6 +123,13 @@ sendMove online coords model =
         Cmd.none
 
 
+handleServerMessage : String -> Model -> ( Model, Cmd Msg )
+handleServerMessage json model =
+    decodeString decodeCommand (Debug.log "received" json)
+        |> Result.map (handleServerCommand json model)
+        |> Result.withDefault ( model, Cmd.none )
+
+
 handleServerCommand : String -> Model -> Command -> ( Model, Cmd Msg )
 handleServerCommand json model { type_ } =
     case type_ of
@@ -150,27 +138,21 @@ handleServerCommand json model { type_ } =
                 |> Result.map
                     (\{ player } ->
                         update
-                            (StartOnlineGame
-                                (case player of
-                                    Decoder.EnumPlayerPlayerOne ->
-                                        PlayerOne
-
-                                    Decoder.EnumPlayerPlayerTwo ->
-                                        PlayerTwo
-                                )
-                            )
+                            (StartOnlineGame (enumPlayerToPlayer player))
                             model
                     )
                 |> Result.withDefault ( model, Cmd.none )
 
         Decoder.EnumTypeMove ->
             -- check that it's the oppponent's turn
-            decodeString decodeMove json
+            ( decodeString decodeMove json
                 |> Result.map
                     (\{ coords } ->
-                        update (Move ( coords.x, coords.y )) model
+                        move ( coords.x, coords.y ) model
                     )
-                |> Result.withDefault ( model, Cmd.none )
+                |> Result.withDefault model
+            , Cmd.none
+            )
 
         Decoder.EnumTypeDisconnected ->
             ( { model
@@ -178,6 +160,17 @@ handleServerCommand json model { type_ } =
               }
             , Cmd.none
             )
+
+
+enumPlayerToPlayer : Decoder.EnumPlayer -> Player
+enumPlayerToPlayer player =
+    (case player of
+        Decoder.EnumPlayerPlayerOne ->
+            PlayerOne
+
+        Decoder.EnumPlayerPlayerTwo ->
+            PlayerTwo
+    )
 
 
 encodeMove : Decoder.Coords -> String
